@@ -971,8 +971,8 @@
         </div>
       </div>
 
-      <div id="prob-warning" style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-red); margin-bottom: 12px; display: none;">
-        Probabilities must sum to 100%. Currently: <span id="prob-total">100</span>%
+      <div id="prob-warning" style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+        Probabilities always sum to 100%. Adjusting one slider redistributes the others proportionally.
       </div>
 
       <div class="result-row">
@@ -1307,25 +1307,65 @@ const pcts = SCENARIOS.map(s => document.getElementById(s.key + '-pct'));
 const weightedValEl = document.getElementById('weighted-val');
 const overvalEl = document.getElementById('overval');
 const probWarning = document.getElementById('prob-warning');
-const probTotal = document.getElementById('prob-total');
 
-function updateModel() {
-  const vals = sliders.map(s => parseInt(s.value));
-  const total = vals.reduce((a, b) => a + b, 0);
+// Constrained sliders: always sum to 100%
+// When one slider moves, the others adjust proportionally.
+let values = [10, 30, 40, 20]; // bull, base, bear, worst
 
-  vals.forEach((v, i) => { pcts[i].textContent = v + '%'; });
+function redistributeSliders(changedIdx, newVal) {
+  newVal = Math.max(0, Math.min(100, newVal));
+  const oldVal = values[changedIdx];
+  const delta = newVal - oldVal;
 
-  if (total !== 100) {
-    probWarning.style.display = 'block';
-    probTotal.textContent = total;
+  // Calculate remaining budget for the other sliders
+  const othersOldTotal = values.reduce((s, v, i) => i === changedIdx ? s : s + v, 0);
+
+  values[changedIdx] = newVal;
+  const remaining = 100 - newVal;
+
+  if (othersOldTotal === 0) {
+    // Edge case: all others are 0, distribute remaining equally
+    let count = values.length - 1;
+    let each = Math.floor(remaining / count);
+    let leftover = remaining - each * count;
+    for (let i = 0; i < values.length; i++) {
+      if (i === changedIdx) continue;
+      values[i] = each + (leftover > 0 ? 1 : 0);
+      if (leftover > 0) leftover--;
+    }
   } else {
-    probWarning.style.display = 'none';
+    // Proportionally scale the others
+    let distributed = 0;
+    const otherIndices = values.map((_, i) => i).filter(i => i !== changedIdx);
+
+    for (let j = 0; j < otherIndices.length; j++) {
+      const i = otherIndices[j];
+      if (j === otherIndices.length - 1) {
+        // Last one gets the remainder to avoid rounding drift
+        values[i] = Math.max(0, remaining - distributed);
+      } else {
+        const proportion = values[i] / othersOldTotal;
+        values[i] = Math.max(0, Math.round(remaining * proportion));
+        distributed += values[i];
+      }
+    }
   }
 
-  const normalizer = total > 0 ? total / 100 : 1;
+  // Sync all slider positions and labels
+  values.forEach((v, i) => {
+    sliders[i].value = v;
+    pcts[i].textContent = v + '%';
+  });
+
+  updateModel();
+}
+
+function updateModel() {
+  probWarning.style.display = 'none';
+
   let ev = 0;
-  vals.forEach((v, i) => {
-    ev += (v / 100 / normalizer) * SCENARIOS[i].pv;
+  values.forEach((v, i) => {
+    ev += (v / 100) * SCENARIOS[i].pv;
   });
 
   const evB = ev / 1e9;
@@ -1334,7 +1374,11 @@ function updateModel() {
   const currentVal = 11e9;
   const ratio = currentVal / ev;
 
-  if (ratio > 1.05) {
+  if (ev === 0) {
+    overvalEl.textContent = 'N/A';
+    overvalEl.style.color = COLORS.muted;
+    weightedValEl.style.color = COLORS.muted;
+  } else if (ratio > 1.05) {
     overvalEl.textContent = ratio.toFixed(1) + 'x overvalued';
     overvalEl.style.color = COLORS.red;
     weightedValEl.style.color = COLORS.green;
@@ -1349,7 +1393,9 @@ function updateModel() {
   }
 }
 
-sliders.forEach(s => s.addEventListener('input', updateModel));
+sliders.forEach((s, i) => {
+  s.addEventListener('input', () => redistributeSliders(i, parseInt(s.value)));
+});
 
 
 // =========================================================================
