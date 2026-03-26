@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legal AI Valuations: A Skeptic's Analysis</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg-primary: #0a0a0c;
+    --bg-secondary: #111114;
+    --bg-tertiary: #18181c;
+    --bg-card: #1a1a1f;
+    --bg-card-hover: #1f1f25;
+    --border: #2a2a32;
+    --border-bright: #3a3a45;
+    --text-primary: #e8e6e3;
+    --text-secondary: #9a9890;
+    --text-muted: #5a5850;
+    --accent-amber: #f0b429;
+    --accent-amber-dim: rgba(240, 180, 41, 0.15);
+    --accent-red: #e5534b;
+    --accent-red-dim: rgba(229, 83, 75, 0.12);
+    --accent-green: #57ab5a;
+    --accent-green-dim: rgba(87, 171, 90, 0.12);
+    --accent-blue: #539bf5;
+    --accent-blue-dim: rgba(83, 155, 245, 0.12);
+    --accent-purple: #b083f0;
+    --accent-purple-dim: rgba(176, 131, 240, 0.12);
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-sans: 'DM Sans', -apple-system, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-bright) var(--bg-primary);
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--accent-amber);
+    color: var(--bg-primary);
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+  }
+
+  /* Top bar */
+  .top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 36px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    z-index: 100;
+    letter-spacing: 0.03em;
+  }
+  .top-bar .tag {
+    color: var(--accent-amber);
+    font-weight: 600;
+  }
+  .top-bar .live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent-red);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Layout */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 72px 24px 80px;
+  }
+
+  /* Header */
+  .hero {
+    padding: 60px 0 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+    position: relative;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 120px;
+    height: 1px;
+    background: var(--accent-amber);
+  }
+  .hero-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-amber);
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+  .hero h1 {
+    font-family: var(--font-serif);
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent-amber);
+  }
+  .hero .subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    font-weight: 300;
+    max-width: 600px;
+  }
+  .hero .meta {
+    margin-top: 24px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  /* Verdict banner */
+  .verdict-banner {
+    background: var(--bg-card);
+    border: 1px solid var(--accent-red);
+    border-left: 3px solid var(--accent-red);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .verdict-banner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, var(--accent-red-dim), transparent 60%);
+    pointer-events: none;
+  }
+  .verdict-banner .verdict-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-red);
+    margin-bottom: 10px;
+    font-weight: 600;
+    position: relative;
+  }
+  .verdict-banner .verdict-main {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    line-height: 1.3;
+    position: relative;
+  }
+  .verdict-banner .verdict-main .num {
+    color: var(--accent-amber);
+    font-weight: 600;
+  }
+  .verdict-banner .verdict-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    position: relative;
+  }
+
+  /* Section styling */
+  section {
+    margin-bottom: 56px;
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .section-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 48px;
+    height: 1px;
+    background: var(--accent-amber);
+  }
+  .section-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent-amber);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .section-title {
+    font-family: var(--font-serif);
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  /* Stat grid */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover {
+    border-color: var(--border-bright);
+  }
+  .stat-card .stat-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .stat-card .stat-value {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .stat-card .stat-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+  .stat-value.amber { color: var(--accent-amber); }
+  .stat-value.red { color: var(--accent-red); }
+  .stat-value.green { color: var(--accent-green); }
+  .stat-value.blue { color: var(--accent-blue); }
+
+  /* Charts */
+  .chart-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .chart-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .chart-wrap {
+    position: relative;
+    height: 320px;
+  }
+  @media (max-width: 640px) {
+    .chart-wrap { height: 260px; }
+  }
+
+  /* Interactive scenario panel */
+  .scenario-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .slider-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .slider-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .slider-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .slider-label .pct {
+    font-weight: 700;
+    font-size: 14px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent-amber);
+    cursor: pointer;
+    border: 2px solid var(--bg-primary);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent-amber);
+    cursor: pointer;
+    border: 2px solid var(--bg-primary);
+  }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .result-row:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+  .result-row .label { color: var(--text-secondary); }
+  .result-row .value { font-weight: 700; font-size: 16px; }
+
+  /* Value chain */
+  .value-chain {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 700px) {
+    .value-chain { grid-template-columns: 1fr; }
+  }
+  .chain-layer {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .chain-layer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+  }
+  .chain-layer.high::before { background: var(--accent-green); }
+  .chain-layer.uncertain::before { background: var(--accent-amber); }
+  .chain-layer.growing::before { background: var(--accent-green); }
+  .chain-layer .chain-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .chain-layer h4 {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    margin-bottom: 6px;
+    font-weight: 400;
+  }
+  .chain-layer .examples {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-bottom: 12px;
+  }
+  .chain-layer .capture-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+    font-weight: 600;
+  }
+  .capture-high { background: var(--accent-green-dim); color: var(--accent-green); }
+  .capture-uncertain { background: var(--accent-amber-dim); color: var(--accent-amber); }
+  .capture-declining { background: var(--accent-red-dim); color: var(--accent-red); }
+
+  /* Tables */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .data-table th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-bright);
+    background: var(--bg-secondary);
+    font-weight: 500;
+  }
+  .data-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .data-table tr:hover td {
+    background: var(--bg-card-hover);
+  }
+  .data-table .agent-name {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .data-table .agent-name.claude { color: var(--accent-amber); }
+  .data-table .agent-name.gemini { color: var(--accent-blue); }
+  .data-table .agent-name.codex { color: var(--accent-green); }
+
+  /* Callout boxes */
+  .callout {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-amber);
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  .callout.red { border-left-color: var(--accent-red); }
+  .callout .callout-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-amber);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .callout.red .callout-title { color: var(--accent-red); }
+
+  /* Prose */
+  .prose { max-width: 720px; }
+  .prose p { margin-bottom: 16px; color: var(--text-secondary); }
+  .prose strong { color: var(--text-primary); font-weight: 600; }
+  .prose .highlight {
+    color: var(--accent-amber);
+    font-weight: 500;
+  }
+
+  /* Bottom line list */
+  .findings-list {
+    list-style: none;
+    counter-reset: findings;
+  }
+  .findings-list li {
+    counter-increment: findings;
+    padding: 16px 0 16px 48px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .findings-list li::before {
+    content: counter(findings);
+    position: absolute;
+    left: 0; top: 16px;
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-amber);
+    width: 32px;
+    text-align: center;
+  }
+  .findings-list li strong { color: var(--text-primary); }
+
+  /* Scenario details */
+  .scenario-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .scenario-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+  .scenario-card h4 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+  .scenario-card .sc-prob {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .scenario-card .sc-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .scenario-card .sc-metric {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+  }
+  .scenario-card .sc-metric .val {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .sc-bull h4 { color: var(--accent-green); }
+  .sc-base h4 { color: var(--accent-blue); }
+  .sc-bear h4 { color: var(--accent-amber); }
+  .sc-worst h4 { color: var(--accent-red); }
+
+  /* Footer */
+  .footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+  .footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    transition: color 0.2s;
+  }
+  .footer a:hover { color: var(--accent-amber); }
+
+  /* Animations */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ARR timeline */
+  .arr-timeline {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 120px;
+    margin: 20px 0;
+  }
+  .arr-bar {
+    flex: 1;
+    background: var(--accent-amber-dim);
+    border-top: 2px solid var(--accent-amber);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 8px 4px;
+    position: relative;
+    transition: background 0.2s;
+    min-width: 0;
+  }
+  .arr-bar:hover { background: rgba(240, 180, 41, 0.25); }
+  .arr-bar .arr-val {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-amber);
+    position: absolute;
+    top: -22px;
+    white-space: nowrap;
+  }
+  .arr-bar .arr-date {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    position: absolute;
+    bottom: -18px;
+    white-space: nowrap;
+  }
+
+  /* Require box */
+  .require-box {
+    background: var(--bg-card);
+    border: 1px solid var(--accent-red);
+    padding: 32px;
+    text-align: center;
+    margin: 24px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .require-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, var(--accent-red-dim), transparent 50%);
+    pointer-events: none;
+  }
+  .require-box .big-num {
+    font-family: var(--font-mono);
+    font-size: 64px;
+    font-weight: 700;
+    color: var(--accent-red);
+    line-height: 1;
+    position: relative;
+  }
+  .require-box .big-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    position: relative;
+  }
+  .require-box .big-context {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    position: relative;
+  }
+
+  /* Comparison bars */
+  .compare-bars {
+    margin: 20px 0;
+  }
+  .compare-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+  .compare-row .cr-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    width: 120px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .compare-row .cr-bar-wrap {
+    flex: 1;
+    height: 28px;
+    background: var(--bg-tertiary);
+    position: relative;
+    overflow: hidden;
+  }
+  .compare-row .cr-bar {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    transition: width 0.8s ease;
+  }
+  .cr-bar.current { background: var(--accent-red-dim); color: var(--accent-red); }
+  .cr-bar.fair { background: var(--accent-green-dim); color: var(--accent-green); }
+  .cr-bar.saas { background: var(--accent-blue-dim); color: var(--accent-blue); }
+
+  @media (max-width: 640px) {
+    .container { padding: 56px 16px 60px; }
+    .hero { padding: 40px 0 32px; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .verdict-banner { padding: 20px; }
+    .scenario-panel { padding: 20px; }
+    .slider-group { grid-template-columns: 1fr; }
+    .compare-row .cr-label { width: 80px; font-size: 10px; }
+    .require-box .big-num { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div><span class="tag">RESEARCH</span> &middot; Legal AI Valuations &middot; March 2026</div>
+  <div><span class="live-dot"></span>Multi-agent analysis (Claude + Codex + Gemini)</div>
+</div>
+
+<div class="container">
+
+  <!-- HERO -->
+  <header class="hero fade-in">
+    <div class="hero-label">Independent Analysis</div>
+    <h1>Legal AI Valuations:<br>A Skeptic's <em>Analysis</em></h1>
+    <div class="subtitle">Are Harvey ($11B) and Legora ($5.55B) worth it? A first-principles investigation into whether legal AI middleware can capture durable value.</div>
+    <div class="meta">
+      <span>March 26, 2026</span>
+      <span>3 AI agents consulted</span>
+      <span>23+ web sources</span>
+      <span>Scenario model included</span>
+    </div>
+  </header>
+
+  <!-- VERDICT -->
+  <div class="verdict-banner fade-in">
+    <div class="verdict-label">Executive Verdict</div>
+    <div class="verdict-main">Probability-weighted fair value: <span class="num">~$2.6B</span> vs. $11B current valuation. Harvey appears <span class="num">~4.2x overvalued.</span></div>
+    <div class="verdict-sub">To justify $11B, you must assign 81% probability to Harvey becoming "the Bloomberg Terminal of law." Three independent AI agents agree: real products, unjustified valuations.</div>
+  </div>
+
+  <!-- KEY METRICS -->
+  <section class="fade-in">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">The Numbers</h2>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Harvey Valuation</div>
+        <div class="stat-value amber">$11B</div>
+        <div class="stat-sub">March 2026, Sequoia + GIC led</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Harvey ARR</div>
+        <div class="stat-value green">~$210M</div>
+        <div class="stat-sub">"Significantly north of $200M"</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Revenue Multiple</div>
+        <div class="stat-value red">52.4x</div>
+        <div class="stat-sub">Normal SaaS: 10x. Generous: 20x.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Legora Valuation</div>
+        <div class="stat-value amber">$5.55B</div>
+        <div class="stat-sub">Revenue undisclosed (est. ~$168M)</div>
+      </div>
+    </div>
+
+    <!-- ARR trajectory -->
+    <div class="chart-container">
+      <div class="chart-title">Harvey ARR Trajectory ($ Millions)</div>
+      <div class="arr-timeline" style="padding-top: 28px; margin-bottom: 28px;">
+        <div class="arr-bar" style="height: 24%"><span class="arr-val">$50M</span><span class="arr-date">Dec 2024</span></div>
+        <div class="arr-bar" style="height: 48%"><span class="arr-val">$100M</span><span class="arr-date">Aug 2025</span></div>
+        <div class="arr-bar" style="height: 81%"><span class="arr-val">$190M</span><span class="arr-date">Jan 2026</span></div>
+        <div class="arr-bar" style="height: 100%"><span class="arr-val">$210M+</span><span class="arr-date">Mar 2026</span></div>
+      </div>
+      <div class="callout" style="margin-top: 28px;">
+        <div class="callout-title">The revenue puzzle</div>
+        Revenue growth is real and impressive ($50M to $210M in ~15 months). But it reflects initial land-grab dynamics and mega-rounds as procurement signaling to conservative buyers, not proven durable demand. The true test comes in 2027-2028 when first renewal cycles hit.
+      </div>
+    </div>
+
+    <!-- Multiples comparison -->
+    <div class="chart-container">
+      <div class="chart-title">Valuation Multiples Compared</div>
+      <div class="compare-bars">
+        <div class="compare-row">
+          <div class="cr-label">Harvey (current)</div>
+          <div class="cr-bar-wrap"><div class="cr-bar current" style="width: 100%">52.4x ARR</div></div>
+        </div>
+        <div class="compare-row">
+          <div class="cr-label">Legora (est.)</div>
+          <div class="cr-bar-wrap"><div class="cr-bar current" style="width: 63%">~33x ARR</div></div>
+        </div>
+        <div class="compare-row">
+          <div class="cr-label">Premium SaaS</div>
+          <div class="cr-bar-wrap"><div class="cr-bar saas" style="width: 38%">20x ARR</div></div>
+        </div>
+        <div class="compare-row">
+          <div class="cr-label">Normal SaaS</div>
+          <div class="cr-bar-wrap"><div class="cr-bar fair" style="width: 19%">10x ARR</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BILLABLE HOURS PARADOX -->
+  <section class="fade-in">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">The Billable Hours Paradox</h2>
+    </div>
+
+    <div class="prose">
+      <p>BigLaw firms profit by billing more hours. AI makes work faster, reducing billable hours. So why adopt tools that cannibalize your revenue model?</p>
+      <p><strong>The answer depends entirely on the billing model.</strong> Under hourly billing (90% of the market), AI directly destroys firm revenue. Under fixed-fee billing (10% of the market), AI supercharges margins. The transition between these models is glacially slow.</p>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-title">Impact Per Associate: Hourly vs. Fixed-Fee Billing</div>
+      <div class="chart-wrap">
+        <canvas id="billingChart"></canvas>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Under Hourly Billing</div>
+        <div class="stat-value red">-$456K</div>
+        <div class="stat-sub">Lost revenue per associate per year</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Under Fixed-Fee</div>
+        <div class="stat-value green">+$96K</div>
+        <div class="stat-sub">Margin gain per associate per year</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Market on Hourly</div>
+        <div class="stat-value amber">90%</div>
+        <div class="stat-sub">Of legal dollars still flow through hours</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ABA Opinion 512</div>
+        <div class="stat-value blue">BAN</div>
+        <div class="stat-sub">Can't bill AI time as human time</div>
+      </div>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-title">How are profits rising while hours decline?</div>
+      Pure rate increases. BigLaw billing rates jumped 10% in 2024 (blended to $1,057/hr at AmLaw 100), while hours per lawyer declined 1.6%. Firms are raising prices faster than AI erodes volume. But this is a temporary arbitrage that clients are actively working to close: 64% of in-house counsel expect AI to reduce reliance on outside counsel.
+    </div>
+  </section>
+
+  <!-- VALUE CHAIN -->
+  <section class="fade-in">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">Value Chain Analysis</h2>
+    </div>
+
+    <div class="prose">
+      <p>The right question is not "is legal AI valuable?" (it is). The question is: <strong class="highlight">does value accrue to the middleware layer?</strong> Historical precedent says no. Middleware gets squeezed between the platform expanding down and end users building up.</p>
+    </div>
+
+    <div class="value-chain">
+      <div class="chain-layer growing">
+        <div class="chain-num">LAYER 1</div>
+        <h4>Model Labs</h4>
+        <div class="examples">OpenAI, Anthropic, Google</div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Capture token/API revenue. Expanding into verticals. Harvey's own CEO says these are "the bigger risk."</p>
+        <span class="capture-tag capture-high">Value: High + Growing</span>
+      </div>
+      <div class="chain-layer uncertain">
+        <div class="chain-num">LAYER 2</div>
+        <h4>Middleware</h4>
+        <div class="examples">Harvey, Legora, CoCounsel</div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Per-seat SaaS for packaging + workflow. No proprietary model. Moat is security certs and integrations, which are commoditizing.</p>
+        <span class="capture-tag capture-declining">Value: Uncertain, Likely Declining</span>
+      </div>
+      <div class="chain-layer growing">
+        <div class="chain-num">LAYER 3</div>
+        <h4>End Users</h4>
+        <div class="examples">Law firms, In-house GC, Individuals</div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Efficiency gains accrue directly. Increasingly using models directly for contract review, redlining, and research.</p>
+        <span class="capture-tag capture-high">Value: High + Growing</span>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">The middleware precedent</div>
+      Travel agents were disintermediated by Expedia, then Expedia squeezed by Google Flights. Data analytics dashboards were absorbed into cloud platforms. API management startups were absorbed by AWS/Azure. <strong>The wrapper rarely survives the platform's vertical integration.</strong>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE SCENARIO MODEL -->
+  <section class="fade-in">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2 class="section-title">Interactive Scenario Model</h2>
+    </div>
+
+    <div class="prose">
+      <p>Adjust the probability weights below to see how different beliefs about Harvey's future change the fair valuation. The model discounts 2030 terminal values to today at a 25% VC-appropriate rate.</p>
+    </div>
+
+    <div class="scenario-panel">
+      <div class="slider-group">
+        <div class="slider-item">
+          <div class="slider-label" style="color: var(--accent-green)">
+            <span>Bull: Bloomberg of Law</span>
+            <span class="pct" id="bull-pct">10%</span>
+          </div>
+          <input type="range" id="bull-slider" min="0" max="100" value="10">
+        </div>
+        <div class="slider-item">
+          <div class="slider-label" style="color: var(--accent-blue)">
+            <span>Base: Solid SaaS</span>
+            <span class="pct" id="base-pct">30%</span>
+          </div>
+          <input type="range" id="base-slider" min="0" max="100" value="30">
+        </div>
+        <div class="slider-item">
+          <div class="slider-label" style="color: var(--accent-amber)">
+            <span>Bear: Middleware Squeeze</span>
+            <span class="pct" id="bear-pct">40%</span>
+          </div>
+          <input type="range" id="bear-slider" min="0" max="100" value="40">
+        </div>
+        <div class="slider-item">
+          <div class="slider-label" style="color: var(--accent-red)">
+            <span>Worst: Full Disintermediation</span>
+            <span class="pct" id="worst-pct">20%</span>
+          </div>
+          <input type="range" id="worst-slider" min="0" max="100" value="20">
+        </div>
+      </div>
+
+      <div id="prob-warning" style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-red); margin-bottom: 12px; display: none;">
+        Probabilities must sum to 100%. Currently: <span id="prob-total">100</span>%
+      </div>
+
+      <div class="result-row">
+        <span class="label">Probability-Weighted Fair Value</span>
+        <span class="value" id="weighted-val" style="color: var(--accent-green)">$2.61B</span>
+      </div>
+      <div class="result-row">
+        <span class="label">Current Valuation</span>
+        <span class="value" style="color: var(--accent-red)">$11.00B</span>
+      </div>
+      <div class="result-row">
+        <span class="label">Implied Over/Under Valuation</span>
+        <span class="value" id="overval" style="color: var(--accent-red)">4.2x overvalued</span>
+      </div>
+    </div>
+
+    <!-- Revenue trajectory chart -->
+    <div class="chart-container">
+      <div class="chart-title">Projected Revenue Trajectories by Scenario (ARR, $M)</div>
+      <div class="chart-wrap">
+        <canvas id="scenarioChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Scenario details cards -->
+    <div class="scenario-details">
+      <div class="scenario-card sc-bull">
+        <h4>Bull: Bloomberg of Law</h4>
+        <div class="sc-prob">Default: 10% probability</div>
+        <div class="sc-desc">Harvey becomes the default workflow OS for global legal. Expands into compliance, asset management. Builds durable data moat.</div>
+        <div class="sc-metric"><span>2030 ARR</span><span class="val">$2,200M</span></div>
+        <div class="sc-metric"><span>Terminal Multiple</span><span class="val">15x</span></div>
+        <div class="sc-metric"><span>2030 Valuation</span><span class="val">$33.0B</span></div>
+        <div class="sc-metric"><span>PV Today</span><span class="val">$13.5B</span></div>
+      </div>
+      <div class="scenario-card sc-base">
+        <h4>Base: Solid SaaS</h4>
+        <div class="sc-prob">Default: 30% probability</div>
+        <div class="sc-desc">Grows well but faces competition from labs and incumbents. Retains clients but pricing power erodes. Growth decelerates.</div>
+        <div class="sc-metric"><span>2030 ARR</span><span class="val">$850M</span></div>
+        <div class="sc-metric"><span>Terminal Multiple</span><span class="val">10x</span></div>
+        <div class="sc-metric"><span>2030 Valuation</span><span class="val">$8.5B</span></div>
+        <div class="sc-metric"><span>PV Today</span><span class="val">$3.5B</span></div>
+      </div>
+      <div class="scenario-card sc-bear">
+        <h4>Bear: Middleware Squeeze</h4>
+        <div class="sc-prob">Default: 40% probability</div>
+        <div class="sc-desc">Model labs build native legal features. Thomson Reuters integrates AI with deeper data. Firms build in-house on APIs. Harvey squeezed.</div>
+        <div class="sc-metric"><span>2030 ARR</span><span class="val">$250M</span></div>
+        <div class="sc-metric"><span>Terminal Multiple</span><span class="val">5x</span></div>
+        <div class="sc-metric"><span>2030 Valuation</span><span class="val">$1.2B</span></div>
+        <div class="sc-metric"><span>PV Today</span><span class="val">$0.5B</span></div>
+      </div>
+      <div class="scenario-card sc-worst">
+        <h4>Worst: Disintermediated</h4>
+        <div class="sc-prob">Default: 20% probability</div>
+        <div class="sc-desc">Middleware layer fully absorbed. Models offer legal features natively. Product becomes redundant. Acqui-hire territory.</div>
+        <div class="sc-metric"><span>2030 ARR</span><span class="val">$80M</span></div>
+        <div class="sc-metric"><span>Terminal Multiple</span><span class="val">2x</span></div>
+        <div class="sc-metric"><span>2030 Valuation</span><span class="val">$0.2B</span></div>
+        <div class="sc-metric"><span>PV Today</span><span class="val">$0.1B</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT MUST YOU BELIEVE -->
+  <section class="fade-in">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2 class="section-title">What Must You Believe?</h2>
+    </div>
+
+    <div class="require-box">
+      <div class="big-num">81%</div>
+      <div class="big-label">Probability you must assign to the Bull case to justify $11B</div>
+      <div class="big-context">That means you must believe there's an 81% chance Harvey becomes the Bloomberg Terminal of law,<br>while model labs, Thomson Reuters, LexisNexis, and BigLaw IT all fail to compete.</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">At 10x Multiple</div>
+        <div class="stat-value red">$1.1B</div>
+        <div class="stat-sub">ARR needed to justify $11B (5.2x current)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">At 20x Multiple</div>
+        <div class="stat-value amber">$550M</div>
+        <div class="stat-sub">ARR needed to justify $11B (2.6x current)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THREE-AGENT CONSENSUS -->
+  <section class="fade-in">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2 class="section-title">Three-Agent Consensus</h2>
+    </div>
+
+    <div class="prose">
+      <p>Three independent AI systems analyzed this question in parallel, each with different models, search strategies, and reasoning approaches. They converged on remarkably similar conclusions.</p>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 100px;">Agent</th>
+          <th>Position</th>
+          <th>Key Insight</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="agent-name claude">Claude</span><br><span style="font-size:10px; color: var(--text-muted); font-family: var(--font-mono);">Opus 4.6</span></td>
+          <td>$1-2B justified. $9-10B is speculation. Value accrues to firms + model providers, not middleware.</td>
+          <td><strong>The squeeze:</strong> OpenAI/Anthropic expanding down, BigLaw IT building up. Middleware layer has historically been absorbed in platform shifts.</td>
+        </tr>
+        <tr>
+          <td><span class="agent-name gemini">Gemini</span><br><span style="font-size:10px; color: var(--text-muted); font-family: var(--font-mono);">2.5 Pro</span></td>
+          <td>70% hype, 30% structural shift. Harvey is a bet on consolidation, not efficiency.</td>
+          <td><strong>Jevons Paradox + insurance:</strong> BigLaw sells risk transfer, not hours. But "the wrapper rarely survives the platform." Mid-Law dies, top 20 consolidate.</td>
+        </tr>
+        <tr>
+          <td><span class="agent-name codex">Codex</span><br><span style="font-size:10px; color: var(--text-muted); font-family: var(--font-mono);">GPT-5.4</span></td>
+          <td>"Speculative land-grab priced off real value creation." Real PMF, unjustified multiples.</td>
+          <td><strong>BigLaw maximizes PPP, not hours.</strong> Adoption is defensive, not offensive. CEO admits model labs are the real threat. Mega-rounds are procurement signaling.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <div class="callout-title">Consensus</div>
+      All three agents agree: Harvey and Legora are real businesses with real revenue. The products are not worthless. But the valuations (52x and ~33x revenue) are not justified by fundamentals. The most likely explanation is VC dynamics: FOMO-driven competitive bidding for "the AI legal winner," with mega-rounds doubling as enterprise sales tools.
+    </div>
+  </section>
+
+  <!-- BOTTOM LINE -->
+  <section class="fade-in">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2 class="section-title">Bottom Line</h2>
+    </div>
+
+    <ol class="findings-list">
+      <li><strong>Harvey and Legora are real businesses</strong> with fast-growing revenue. Harvey: ~$210M ARR. Legora: undisclosed but likely $100-170M. The products work and have real customers.</li>
+      <li><strong>The valuations are not justified by fundamentals.</strong> Harvey at $11B is 52x revenue. Normal SaaS trades at 10x. Probability-weighted fair value: ~$2.6B. The remaining $8-9B is a bet on becoming the operating system of law.</li>
+      <li><strong>The billable hours paradox is real but not the strongest bear case.</strong> The stronger argument: middleware squeeze. Harvey sits between model labs (expanding down) and enterprise IT (building up). This layer gets absorbed in platform shifts.</li>
+      <li><strong>Value accrues to model labs and end users, not middleware.</strong> Individuals doing their own legal work with Claude/GPT capture the surplus directly. In-house teams with fixed budgets benefit clearly. The middleware layer's share is the most uncertain.</li>
+      <li><strong>Revenue growth reflects a land-grab, not proven durability.</strong> $50M to $210M in 15 months is impressive. But it's driven by initial enterprise sales cycles and fundraising-as-marketing. Renewal cycles in 2027-2028 are the real test.</li>
+      <li><strong>Harvey's own CEO says model companies are the bigger threat.</strong> When the founder tells you the moat is thin, listen. Harvey uses OpenAI, Anthropic, and Google. That alone tells you it's not winning through unique model IP.</li>
+      <li><strong>VC dynamics explain the valuation better than fundamentals.</strong> Sequoia/a16z bidding war. Four valuation jumps in 12 months ($3B, $5B, $8B, $11B). Mega-rounds as procurement signaling to conservative enterprise buyers. Category kingmaking before the window closes.</li>
+      <li><strong>The right question is not "is legal AI valuable?"</strong> It is. The question is whether value accrues to the middleware layer. Historical precedent and structural analysis say: probably not durably. The scaffolding gets absorbed.</li>
+    </ol>
+  </section>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>Analysis conducted March 26, 2026. Multi-agent methodology: Claude Opus 4.6 (primary research + synthesis), Codex GPT-5.4 (23 web searches, xhigh reasoning), Gemini 2.5 Pro (independent analysis). All probability estimates and scenario weights are subjective.</p>
+    <p style="margin-top: 8px;">
+      Sources:
+      <a href="https://techcrunch.com/2026/03/25/harvey-confirms-11b-valuation-sequoia-triples-down/">TechCrunch</a> &middot;
+      <a href="https://www.cnbc.com/2026/03/25/legal-ai-startup-harvey-raises-200-million-at-11-billion-valuation.html">CNBC</a> &middot;
+      <a href="https://news.crunchbase.com/venture/unicorn-legal-tech-ai-startup-legora-triples-valuation/">Crunchbase</a> &middot;
+      <a href="https://sacra.com/c/harvey/">Sacra</a> &middot;
+      <a href="https://www.thomsonreuters.com/en-us/posts/wp-content/uploads/sites/20/2025/01/State-of-the-US-Legal-Market-Report-2025.pdf">Thomson Reuters</a> &middot;
+      <a href="https://www.americanbar.org/news/abanews/aba-news-archives/2024/07/aba-issues-first-ethics-guidance-ai-tools/">ABA</a> &middot;
+      <a href="https://news.bloomberglaw.com/litigation/big-laws-increasing-ai-use-could-speed-billable-hours-demise">Bloomberg Law</a>
+    </p>
+  </div>
+
+</div>
+
+<script>
+// =========================================================================
+// CHARTS
+// =========================================================================
+
+const COLORS = {
+  amber: '#f0b429',
+  red: '#e5534b',
+  green: '#57ab5a',
+  blue: '#539bf5',
+  purple: '#b083f0',
+  muted: '#5a5850',
+  border: '#2a2a32',
+  bg: '#1a1a1f',
+};
+
+Chart.defaults.color = '#9a9890';
+Chart.defaults.borderColor = '#2a2a32';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 11;
+
+// --- Billing Impact Chart ---
+const billingCtx = document.getElementById('billingChart').getContext('2d');
+new Chart(billingCtx, {
+  type: 'bar',
+  data: {
+    labels: ['Current\n(No AI)', 'With AI\n(Hourly Billing)', 'With AI\n(Fixed Fee)'],
+    datasets: [
+      {
+        label: 'Revenue',
+        data: [1140000, 684000, 1140000],
+        backgroundColor: [COLORS.muted + '80', COLORS.red + '80', COLORS.green + '80'],
+        borderColor: [COLORS.muted, COLORS.red, COLORS.green],
+        borderWidth: 1,
+      },
+      {
+        label: 'Margin',
+        data: [855000, 398800, 950800],
+        backgroundColor: [COLORS.muted + '40', COLORS.red + '40', COLORS.green + '40'],
+        borderColor: [COLORS.muted, COLORS.red, COLORS.green],
+        borderWidth: 1,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { padding: 16, usePointStyle: true, pointStyle: 'rect' } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.dataset.label + ': $' + (ctx.raw / 1000).toFixed(0) + 'K'
+        }
+      }
+    },
+    scales: {
+      y: {
+        ticks: {
+          callback: v => '$' + (v / 1000) + 'K'
+        },
+        grid: { color: '#1f1f25' }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// --- Scenario Revenue Chart ---
+const scenarioCtx = document.getElementById('scenarioChart').getContext('2d');
+const scenarioChart = new Chart(scenarioCtx, {
+  type: 'line',
+  data: {
+    labels: ['2025', '2026', '2027', '2028', '2029', '2030'],
+    datasets: [
+      {
+        label: 'Bull: Bloomberg of Law',
+        data: [210, 400, 700, 1100, 1600, 2200],
+        borderColor: COLORS.green,
+        backgroundColor: COLORS.green + '15',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: COLORS.green,
+        borderWidth: 2,
+      },
+      {
+        label: 'Base: Solid SaaS',
+        data: [210, 350, 500, 650, 750, 850],
+        borderColor: COLORS.blue,
+        backgroundColor: COLORS.blue + '10',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: COLORS.blue,
+        borderWidth: 2,
+      },
+      {
+        label: 'Bear: Middleware Squeeze',
+        data: [210, 300, 350, 350, 300, 250],
+        borderColor: COLORS.amber,
+        backgroundColor: COLORS.amber + '10',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: COLORS.amber,
+        borderWidth: 2,
+      },
+      {
+        label: 'Worst: Disintermediated',
+        data: [210, 280, 250, 180, 120, 80],
+        borderColor: COLORS.red,
+        backgroundColor: COLORS.red + '10',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: COLORS.red,
+        borderWidth: 2,
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { padding: 16, usePointStyle: true, pointStyle: 'line' }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.dataset.label + ': $' + ctx.raw + 'M'
+        }
+      }
+    },
+    scales: {
+      y: {
+        ticks: { callback: v => '$' + v + 'M' },
+        grid: { color: '#1f1f25' }
+      },
+      x: { grid: { color: '#1f1f25' } }
+    }
+  }
+});
+
+
+// =========================================================================
+// INTERACTIVE SLIDERS
+// =========================================================================
+
+const SCENARIOS = [
+  { key: 'bull', pv: 13.5e9 },
+  { key: 'base', pv: 3.5e9 },
+  { key: 'bear', pv: 0.5e9 },
+  { key: 'worst', pv: 0.1e9 },
+];
+
+const sliders = SCENARIOS.map(s => document.getElementById(s.key + '-slider'));
+const pcts = SCENARIOS.map(s => document.getElementById(s.key + '-pct'));
+const weightedValEl = document.getElementById('weighted-val');
+const overvalEl = document.getElementById('overval');
+const probWarning = document.getElementById('prob-warning');
+const probTotal = document.getElementById('prob-total');
+
+function updateModel() {
+  const vals = sliders.map(s => parseInt(s.value));
+  const total = vals.reduce((a, b) => a + b, 0);
+
+  vals.forEach((v, i) => { pcts[i].textContent = v + '%'; });
+
+  if (total !== 100) {
+    probWarning.style.display = 'block';
+    probTotal.textContent = total;
+  } else {
+    probWarning.style.display = 'none';
+  }
+
+  const normalizer = total > 0 ? total / 100 : 1;
+  let ev = 0;
+  vals.forEach((v, i) => {
+    ev += (v / 100 / normalizer) * SCENARIOS[i].pv;
+  });
+
+  const evB = ev / 1e9;
+  weightedValEl.textContent = '$' + evB.toFixed(2) + 'B';
+
+  const currentVal = 11e9;
+  const ratio = currentVal / ev;
+
+  if (ratio > 1.05) {
+    overvalEl.textContent = ratio.toFixed(1) + 'x overvalued';
+    overvalEl.style.color = COLORS.red;
+    weightedValEl.style.color = COLORS.green;
+  } else if (ratio < 0.95) {
+    overvalEl.textContent = (1/ratio).toFixed(1) + 'x undervalued';
+    overvalEl.style.color = COLORS.green;
+    weightedValEl.style.color = COLORS.green;
+  } else {
+    overvalEl.textContent = 'Roughly fair';
+    overvalEl.style.color = COLORS.amber;
+    weightedValEl.style.color = COLORS.amber;
+  }
+}
+
+sliders.forEach(s => s.addEventListener('input', updateModel));
+
+
+// =========================================================================
+// SCROLL ANIMATIONS
+// =========================================================================
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
